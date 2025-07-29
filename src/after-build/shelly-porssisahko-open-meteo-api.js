@@ -1,95 +1,95 @@
 //__REPLACED_WITH_MAIN_CODE__
 
 /**
- * Tämä käyttäjäskripti hyödyntää Open-Meteo-palvelun sääennustetta halvimpien tuntien määrän valintaan
- * Mitä kylmempi lämpötila, sitä useampi halvempi tunti ohjataan ja samalla myös ohjausminuuttien määrää kasvatetaan.
+ * This user script uses the Open-Meteo service's weather forecast to select the number of cheapest hours
+ * The colder the temperature, the more cheaper hours are controlled and at the same time the number of control minutes is increased.
  * 
- * Muokkaa alle sijaintisi koordinaatit - esimerkkinä Tampere
- * Löydät koordinaatit esim. https://www.openstreetmap.org/ - klikkaa hiiren oikealla ja valitse "näytä osoite"
+ * Edit your location coordinates below - Tampere as an example
+ * You can find the coordinates e.g. at https://www.openstreetmap.org/ - right-click and select "show address"
  * 
- * Sen jälkeen muokkaa alempaa toimintalogiikka haluamaksesi
+ * After that, edit the logic below to your liking
  */
 let LATITUDE = "61.4991";
 let LONGITUDE = "23.7871";
 
-//Mitä ohjausta hienosäädetään (0 = ohjaus #1, 1 = ohjaus #2 jne.)
+// What control is fine-tuned (0 = control #1, 1 = control #2 etc.)
 let INSTANCE = 0;
 
-/**
- * Alkuperäiset asetukset
+/** 
+ * Original settings
  */
 let originalConfig = {
   hours: 0,
   minutes: 60
 };
 
-/**
- * Päivä, jonka lämpötilat on haettu
+/** 
+ * The day for which the temperatures have been fetched
  */
 let activeDay = -1;
 
-/**
- * Päivän matalin ja korkein lämpötila
- */
+/** 
+ * The lowest and highest temperature of the day
+ */ 
 let tempData = {
   min: null,
   max: null
 };
 
 /**
- * Käytetään USER_CONFIG hyödyksi ja tallennetaan alkuperäiset asetukset
+ * Use USER_CONFIG to save the original settings
  */
 function USER_CONFIG(inst, initialized) {
-  //Jos kyseessä on jonkun muun asetukset niin ei tehdä mitään
+  // If it is someone else's settings, do nothing
   if (inst != INSTANCE) {
     return;
   }
 
-  //Vähän apumuuttujia
+  // A few helper variables
   const state = _;
   const config = state.c.i[inst];
 
-  //Jos asetuksia ei vielä ole, skipataan (uusi asennus)
+  // If settings are not yet available, skip (new installation)
   if (typeof config.m2 == "undefined") {
-    console.log("Tallenna asetukset kerran käyttäjäskriptiä varten");
+    console.log("Save the settings once for the user script");
     return;
   }
 
-  //Tallenentaan alkuperäiset asetukset muistiin
-  if (initialized) {
-    //Suoritetaan lämpötilalogiikka
+  // Save original settings to memory
+  if (initialized) { 
+    // Executing temperature logic
     activeDay = -1;
 
     originalConfig.hours = config.m2.c;
     originalConfig.minutes = config.m;
 
-    console.log("Alkuperäiset asetukset:", originalConfig);
+    console.log("Original settings:", originalConfig);
   }
 }
 
 /**
- * Kun logiikka on suoritettu, katsotaan onko lämpötilan vaikutus jo tarkistettu tälle päivää
- * Jos ei ole, haetaan lämpötilat ja muutetaan tuntimääriä
+ * Once the logic has been executed, see if the effect of the temperature has already been checked for this day
+ * If not, fetch temperatures and change the number of hours
  */
 function USER_OVERRIDE(inst, cmd, callback) {
-  //Jos kyseessä on jonkun muun asetukset niin ei tehdä mitään
+  // If it is someone else's settings, do nothing
   if (inst != INSTANCE) {
     callback(cmd);
     return;
   }
 
-  //Vähän apumuuttujia
+  // A few helper variables
   const state = _;
   const config = state.c.i[inst];
 
-  //Käytetää lähtökohtaisesti alkuperäisiin asetuksiin tallennettua tuntimäärää ja ohjausminuutteja
-  //Näin ollen jos tallentaa asetukset käyttöliittymältä, tulee ne myös tähän käyttöön
+  // By default, use the number of hours and control minutes stored in the original settings
+  // Therefore, if you save the settings from the user interface, they will also be used here
   let hours = originalConfig.hours;
   let minutes = originalConfig.minutes;
 
   try {
     if (activeDay == new Date().getDate()) {
-      console.log("Lämpötilat haettu jo tälle päivälle -> ei muutoksia:", tempData);
+      console.log("Temperatures already fetched for today -> no changes:", tempData);
       callback(cmd);
       return;
     }
@@ -100,7 +100,7 @@ function USER_OVERRIDE(inst, cmd, callback) {
       ssl_ca: "*"
     };
 
-    console.log("Haetaan lämpötilatietoja:", req.url);
+    console.log("Fetching temperature data:", req.url);
     
     Shelly.call("HTTP.GET", req, function (res, err, msg) {
       try {
@@ -110,74 +110,74 @@ function USER_OVERRIDE(inst, cmd, callback) {
           let data = JSON.parse(res.body);
           res.body = null;
 
-          //Tarkistetaan, onko vastaus validi
+          // Check if the response is valid
           if (data.daily.temperature_2m_min != undefined && data.daily.temperature_2m_max != undefined) {
-            //Nyt meillä on alhaisin ja korkein lämpötila tälle päivälle
+            // Now we have the lowest and highest temperature for today
             tempData.min = data.daily.temperature_2m_min[0];
             tempData.max = data.daily.temperature_2m_max[0];
 
-            console.log("Lämpötilat:", tempData);
+            console.log("Temperatures:", tempData);
 
             //------------------------------
-            // Toimintalogiikka
-            // muokkaa haluamaksesi
+            // Functionality
+            // edit as you wish
             //------------------------------
 
-            //Muutetaan päivän alhaisimman lämpötilan perusteella lämmitystuntien määrää ja minuutteja
+            // Change the number of heating hours and minutes based on the lowest temperature of the day
             if (tempData.min <= -15) {
-              //Vuorokauden aikana alimmillaan alle -15 °C
+              // Lowest during the day below -15 °C
               hours = 8;
               minutes = 60;
 
             } else if (tempData.min <= -10) {
-              //Vuorokauden aikana alimmillaan -15...-10 °C
+              // Lowest during the day -15...
               hours = 7;
               minutes = 45;
 
             } else if (tempData.min <= -5) {
-              //Vuorokauden aikana alimmillaan -10...-5 °C
+              // Lowest during the day -10...-5 °C
               hours = 6;
               minutes = 45;
 
             } else {
-              //Ei tehdä mitään --> käytetään käyttöliittymän asetuksia
+              // Do nothing --> use the user interface settings
             } 
 
             //------------------------------
-            // Toimintalogiikka päättyy
+            // Functionality ends
             //------------------------------
-            state.si[inst].str = "Kylmintä tänään: " + tempData.min.toFixed(1) + "°C -> halvat tunnit: " + hours + " h, ohjaus: " + minutes + " min";
-            console.log("Kylmintä tänään:", tempData.min.toFixed(1), "°C -> asetettu halvimpien tuntien määräksi ", hours, "h ja ohjausminuuteiksi", minutes, "min");
+            state.si[inst].str = "Coldest today: " + tempData.min.toFixed(1) + "°C -> cheap hours: " + hours + " h, control: " + minutes + " min";
+            console.log("Coldest today:", tempData.min.toFixed(1), "°C -> set number of cheapest hours to ", hours, "h and control minutes to", minutes, "min");
 
 
-            //Tänään ei enää tarvitse hakea
+            // No need to fetch again today
             activeDay = new Date().getDate();
             
           } else {
-            throw new Error("Virheellinen lämpötiladata");
+            throw new Error("Invalid temperature data");
           }
         } else {
-          throw new Error("Lämpötilojen haku epäonnistui:" + msg);
+          throw new Error("Failed to fetch temperatures:" + msg);
         }
 
       } catch (err) {
-        state.si[inst].str = "Virhe lämpötilaohjauksessa:" + err;
-        console.log("Virhe lämpötiloja käsitellessä:", err);
+        state.si[inst].str = "Error in temperature control:" + err;
+        console.log("Error processing temperatures:", err);
       }
 
-      //Asetetaan arvot asetuksiin
-      //HUOM: Jos käytät "oma valinta (2 jaksoa)", 2. jakson tunnit voit asettaa muuttujaan "state.c.m2.cnt2"
+      // Set values to settings
+      //NOTE: If you use "custom selection (2 periods)", you can set the hours for the 2nd period in the variable "state.c.m2.cnt2"
       config.m2.c = hours;
       config.m = minutes;
 
-      //Pyydetään suorittamaan logiikka uusiksi
+      // Request to run the logic again
       callback(null);
       return;
     });
 
   } catch (err) {
-    state.si[inst].str = "Virhe lämpötilaohjauksessa:" + err;
-    console.log("Virhe tapahtui USER_CONFIG-funktiossa. Virhe:", err);
+    state.si[inst].str = "Error in temperature control:" + err;
+    console.log("An error occurred in the USER_OVERRIDE function. Error:", err);
     
     config.m2.c = hours;
     config.m = minutes;

@@ -1,90 +1,90 @@
 //__REPLACED_WITH_MAIN_CODE__
 
 /**
- * Tämä käyttäjäskripti hyödyntää Shelly H&T:n (Gen 1, Plus, Gen 3) lähettämää lämpötilaa pörssisähköohjausten asetuksissa
- * Mitä kylmempi lämpötila, sitä useampi halvempi tunti ohjataan ja samalla myös ohjausminuuttien määrää kasvatetaan.
+ * This user script utilizes the temperature sent by Shelly H&T (Gen 1, Plus, Gen 3) in the electricity spot price control settings
+ * The colder the temperature, the more cheaper hours are controlled, and at the same time, the number of control minutes is increased.
  * 
- * Tämä muuttaa ainoastaan #1 ohjauksen asetuksia, muihin ei kosketa.
+ * This only changes the settings for control #1, others are not affected.
  * 
- * Käyttöönotto:
+ * Setup:
  * -----
  * Shelly H&T gen 1
  * -----
- * Lisää Shelly H&T-asetuksiin "actions >- sensor reports" -osoitteisiin osoite
- *    http://ip-osoite/script/1/update-temp
- * missä ip-osoite on tämän shellyn osoite. 
- * Muista myös ottaa "sensor reports" -ominaisuus käyttöön
+ * In the Shelly H&T settings, add the following address to "actions >- sensor reports"
+ *    http://ip-address/script/1/update-temp
+ * where ip-address is the address of this Shelly. 
+ * Remember to also enable the "sensor reports" feature
  * 
  * -----
- * Shelly H&T Plus ja H&T gen 3
+ * Shelly H&T Plus and H&T gen 3
  * -----
- * Lisää uusi Action->Temperature
- * Laita Then Do -kohdalla alle uusi osoite
- *    http://ip-osoite/script/1/update-temp?temp=$temperature
- * missä ip-osoite on tämän Shellyn osoite. 
+ * Add a new Action->Temperature
+ * Under "Then Do", add the new address below
+ *    http://ip-address/script/1/update-temp?temp=$temperature
+ * where ip-address is the address of this Shelly. 
  */
 
-//Mitä ohjausta hienosäädetään (0 = ohjaus #1, 1 = ohjaus #2 jne.)
+// What control is fine-tuned (0 = control #1, 1 = control #2 etc.)
 let INSTANCE = 0;
 
-//Kuinka vanha lämpötilatieto sallitaan ohjauksessa (tunteina)
+// How old temperature data is allowed in the control (in hours)
 let TEMPERATURE_MAX_AGE_HOURS = 12;
 
-//Viimeisin tiedossa oleva lämpötiladata
+// Latest known temperature data
 let data = null;
 
-//Alkuperäiset muokkaamattomat asetukset
+// Original unmodified settings
 let originalConfig = {
   hours: 0,
   minutes: 60
 };
 
 function USER_CONFIG(inst, initialized) {
-  //Jos kyseessä on jonkun muun asetukset niin ei tehdä mitään
+  // If it is someone else's settings, do nothing
   if (inst != INSTANCE) {
     return;
   }
 
-  //Vähän apumuuttujia
+  // A few helper variables
   const state = _;
   const config = state.c.i[inst];
 
-  //Jos asetuksia ei vielä ole, skipataan (uusi asennus)
+  // If settings are not yet available, skip (new installation)
   if (typeof config.m2 == "undefined") {
-    console.log("Tallenna asetukset kerran käyttäjäskriptiä varten");
+    console.log("Save the settings once for the user script");
     return;
   }
 
-  //Tallenentaan alkuperäiset asetukset muistiin
-  if (initialized) {
+  // Save original settings to memory
+  if (initialized) { 
     originalConfig.hours = config.m2.c;
     originalConfig.minutes = config.m;
 
-    console.log("Alkuperäiset asetukset:", originalConfig);
+    console.log("Original settings:", originalConfig);
   }
 
-  //Käytetää lähtökohtaisesti alkuperäisiin asetuksiin tallennettua tuntimäärää ja ohjausminuutteja
-  //Näin ollen jos tallentaa asetukset käyttöliittymältä, tulee ne myös tähän käyttöön
+  // By default, use the number of hours and control minutes stored in the original settings
+  // Therefore, if you save the settings from the user interface, they will also be used here
   let hours = originalConfig.hours;
   let minutes = originalConfig.minutes;
 
   try {
 
     if (data == null) {
-      console.log("Lämpötilatietoa ei ole saatavilla");
-      state.si[inst].str = "Lämpötila ei tiedossa -> halvat tunnit: " + hours + " h, ohjaus: " + minutes + " min";
+      console.log("Temperature data is not available");
+      state.si[inst].str = "Temperature unknown -> cheap hours: " + hours + " h, control: " + minutes + " min";
 
     } else {
       let age = (Date.now() - data.ts) / 1000.0 / 60.0 / 60.0;
-      console.log("Lämpötila on tiedossa (päivittynyt " + age.toFixed(2) + " h sitten):", data);
+      console.log("Temperature is known (updated " + age.toFixed(2) + " h ago):", data);
 
       if (age <= TEMPERATURE_MAX_AGE_HOURS * 60) {
         //------------------------------
-        // Toimintalogiikka
-        // muokkaa haluamaksesi
+        // Functionality
+        // edit as you wish
         //------------------------------
 
-        //Muutetaan lämpötilan perusteella lämmitystuntien määrää ja minuutteja
+        // Change the number of heating hours and minutes based on the temperature
         if (data.temp <= -15) {
           hours = 8;
           minutes = 60;
@@ -98,32 +98,32 @@ function USER_CONFIG(inst, initialized) {
           minutes = 45;
 
         } else {
-          //Ei tehdä mitään --> käytetään käyttöliittymän asetuksia
+          // Do nothing --> use the user interface settings
         }
 
         //------------------------------
-        // Toimintalogiikka päättyy
+        // Functionality ends
         //------------------------------
-        state.si[inst].str = "Lämpötila " + data.temp.toFixed(1) + "°C (" + age.toFixed(1) + "h sitten) -> halvat tunnit: " + hours + " h, ohjaus: " + minutes + " min";
-        console.log("Lämpötila:", data.temp.toFixed(1), "°C -> asetettu halvimpien tuntien määräksi ", hours, "h ja ohjausminuuteiksi", minutes, "min");
+        state.si[inst].str = "Temperature " + data.temp.toFixed(1) + "°C (" + age.toFixed(1) + "h ago) -> cheap hours: " + hours + " h, control: " + minutes + " min";
+        console.log("Temperature:", data.temp.toFixed(1), "°C -> set number of cheapest hours to ", hours, "h and control minutes to", minutes, "min");
 
       } else {
-        console.log("Lämpötilatieto on liian vanha -> ei käytetä");
-        state.si[inst].str = "Lämpötilatieto liian vanha (" + age.toFixed(1) + " h) -> halvat tunnit: " + hours + " h, ohjaus: " + minutes + " min";
+        console.log("Temperature data is too old -> not used");
+        state.si[inst].str = "Temperature data too old (" + age.toFixed(1) + " h) -> cheap hours: " + hours + " h, control: " + minutes + " min";
       }
     }
   } catch (err) {
-    state.si[inst].str = "Virhe lämpötilaohjauksessa:" + err;
-    console.log("Virhe tapahtui USER_CONFIG-funktiossa:", err);
+    state.si[inst].str = "Error in temperature control:" + err;
+    console.log("An error occurred in the USER_CONFIG function:", err);
   }
 
-  //Asetetaan arvot asetuksiin
+  // Set values to settings
   config.m2.c = hours;
   config.m = minutes;
 }
 
-/**
- * Apufunktio, joka kerää parametrit osoitteesta
+/** 
+ * Helper function that collects parameters from the address
  */
 function parseParams(params) {
   let res = {};
@@ -139,7 +139,7 @@ function parseParams(params) {
 }
 
 /**
- * Takaisinkutsu, joka suoritetaan kun saadaan HTTP-pyyntö
+ * Callback that is executed when an HTTP request is received
  */
 function onHttpRequest(request, response) {
   try {
@@ -152,23 +152,22 @@ function onHttpRequest(request, response) {
         ts: Math.floor(Date.now())
       };
 
-      console.log("Lämpötilatiedot päivitetty, pyydetään pörssisähkölogiikan ajoa. Data:", data);
 
       _.si[INSTANCE].chkTs = 0; //Requesting to run logic again
 
       response.code = 200;
 
     } else {
-      console.log("Lämpötilatiedojen päivitys epäonnistui, 'temp' puuttuu parametreista:", params);
+      console.log("Failed to update temperature data, 'temp' is missing from parameters:", params);
       response.code = 400;
     }
 
     response.send();
 
   } catch (err) {
-    console.log("Virhe:", err);
+    console.log("Error:", err);
   }
 }
 
-//Rekisteröidään /script/x/update-temp -osoite
+//Register the /script/x/update-temp address
 HTTPServer.registerEndpoint('update-temp', onHttpRequest);

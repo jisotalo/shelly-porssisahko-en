@@ -1,71 +1,71 @@
 //__REPLACED_WITH_MAIN_CODE__
 
 /**
- * Tämä käyttäjäskripti muuttaa 1. ohjauksen asetuksia
- * Shelly Plus Add-onin mittaaman lämpötilan perusteella.
+ * This user script changes the settings of the 1st control
+ * based on the temperature measured by the Shelly Plus Add-on.
  * 
- * Mitä kylmempi lämpötila, sitä useampi halvempi tunti ohjataan 
- * ja samalla myös ohjausminuuttien määrää kasvatetaan.
+ * The colder the temperature, the more cheaper hours are controlled
+ * and at the same time the number of control minutes is increased.
  */
-//Mitä ohjausta hienosäädetään (0 = ohjaus #1, 1 = ohjaus #2 jne.)
+// What control is fine-tuned (0 = control #1, 1 = control #2 etc.)
 let INSTANCE = 0;
 
-//Alkuperäiset muokkaamattomat asetukset
+// Original unmodified settings
 let originalConfig = {
   hours: 0,
   minutes: 60
 };
-
 function USER_CONFIG(inst, initialized) {
-  //Jos kyseessä on jonkun muun asetukset niin ei tehdä mitään
+
+  // If it is someone else's settings, do nothing
   if (inst != INSTANCE) {
     return;
-  }
+  } 
 
-  //Vähän apumuuttujia
+  // A few helper variables
   const state = _;
   const config = state.c.i[inst];
 
-  //Jos asetuksia ei vielä ole, skipataan (uusi asennus)
+  // If settings are not yet available, skip (new installation)
   if (typeof config.m2 == "undefined") {
-    console.log("Tallenna asetukset kerran käyttäjäskriptiä varten");
+    console.log("Save the settings once for the user script");
     return;
   }
 
-  //Tallenentaan alkuperäiset asetukset muistiin
+  // Save the original settings to memory
   if (initialized) {
     originalConfig.hours = config.m2.c;
     originalConfig.minutes = config.m;
 
-    console.log("Alkuperäiset asetukset:", originalConfig);
-  }
+    console.log("Original settings:", originalConfig);
+  } 
 
-  //Käytetää lähtökohtaisesti alkuperäisiin asetuksiin tallennettua tuntimäärää ja ohjausminuutteja
-  //Näin ollen jos tallentaa asetukset käyttöliittymältä, tulee ne myös tähän käyttöön
+  // By default, use the number of hours and control minutes stored in the original settings
+  // Therefore, if you save the settings from the user interface, they will also be used here
   let hours = originalConfig.hours;
   let minutes = originalConfig.minutes;
 
   try {
     let temp = Shelly.getComponentStatus("temperature:100");
-
+ 
     if (!temp) {
-      state.si[inst].str = "Lämpötilaohjauksen virhe - anturia 100 ei löytynyt";
-      throw new Error("Lämpötila-anturia 100 ei löytynyt");
+      state.si[inst].str = "Temperature control error - sensor 100 not found";
+      throw new Error("Temperature sensor 100 not found");
     }
 
     if (temp.tC == null) {
-      state.si[inst].str = "Lämpötilaohjauksen virhe - onko anturi kytketty?";
-      throw new Error("Onko anturi kytketty?");
+      state.si[inst].str = "Temperature control error - is the sensor connected?";
+      throw new Error("Is the sensor connected?");
     }
 
     //------------------------------
-    // Toimintalogiikka
-    // muokkaa haluamaksesi
+    // Functionality
+    // edit as you wish
     //------------------------------
 
-    //Muutetaan lämpötilan perusteella lämmitystuntien määrää ja minuutteja
+    // Change the number of heating hours and minutes based on the temperature
     if (temp.tC <= -15) {
-      hours = 8;
+      hours= 8;
       minutes = 60;
 
     } else if (temp.tC <= -10) {
@@ -75,24 +75,23 @@ function USER_CONFIG(inst, initialized) {
     } else if (temp.tC <= -5) {
       hours = 6;
       minutes = 45;
-      
+
     } else {
-      //Ei tehdä mitään --> käytetään käyttöliittymän asetuksia
+      // Do nothing --> use the user interface settings
     } 
 
     //------------------------------
-    // Toimintalogiikka päättyy
+    // Functionality ends
     //------------------------------
-    state.si[inst].str = "Lämpötila " + temp.tC.toFixed(1) + "°C -> halvat tunnit: " + hours + " h, ohjaus: " + minutes + " min";
-    console.log("Lämpötila:", temp.tC.toFixed(1), "°C -> asetettu halvimpien tuntien määräksi ", hours, "h ja ohjausminuuteiksi", minutes, "min");
-
-
+    state.si[inst].str = "Temperature " + temp.tC.toFixed(1) + "°C -> cheap hours: " + hours + " h, control: " + minutes + " min";
+    console.log("Temperature:", temp.tC.toFixed(1), "°C -> set number of cheapest hours to ", hours, "h and control minutes to", minutes, "min");
+  
   } catch (err) {
-    state.si[inst].str = "Virhe lämpötilaohjauksessa:" + err;
-    console.log("Virhe tapahtui USER_CONFIG-funktiossa. Virhe:", err);
+    state.si[inst].str = "Error in temperature control:" + err;
+    console.log("An error occurred in the USER_CONFIG function. Error:", err);
   }
 
-  //Asetetaan arvot asetuksiin
+  // Set values to settings
   config.m2.c = hours;
   config.m = minutes;
 }

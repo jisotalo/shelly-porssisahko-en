@@ -1,23 +1,23 @@
 /**
- * Tämä skripti päivittää shelly-porssisahko -skriptin
- * asetukset Shellyn KVS-muistiin.
+ * This script updates the shelly-porssisahko script's
+ * settings in Shelly's KVS memory.
  * 
- * Käyttökohde esim. jos haluaa päivittää asetukset etänä,
- * ilman pääsyä hallintaan.
+ * Use case e.g. if you want to update settings remotely,
+ * without access to the management interface.
  * 
- * 1. Asenna skripti erikseen pörssisähkön rinnalle.
- * 2. Ota kommentit pois niistä asetuksista, joita haluat muuttaa.
- *    Eli // rivin alusta pois
- * 3. Muuta asetukset, tallennta ja käynnistä skripti.
- * 4. Valmis! Muut asetukset pysyivät koskemattomina.
+ * 1. Install the script separately alongside the spot price script.
+ * 2. Uncomment the settings you want to change.
+ *    i.e. remove // from the beginning of the line
+ * 3. Change the settings, save and run the script.
+ * 4. Done! Other settings remained untouched.
  */
 
-//Pörssisähköskriptin numero
+// Electricity exchange script number
 let MAIN_SRIPT_NUMBER = 1;
 
 let cfg = {
   //-------------------------------------
-  // Yleiset asetukset
+  // General settings
   //-------------------------------------
   c: {
     /** Group (country) to get prices from */
@@ -38,7 +38,7 @@ let cfg = {
   i:
     [
       //-------------------------------------
-      // Ohjaus #1
+      // Control #1
       //-------------------------------------
       {
         /** Enabled [0/1]*/
@@ -124,7 +124,7 @@ let cfg = {
 
 
       //-------------------------------------
-      // Ohjaus #2
+      // Control #2
       //-------------------------------------
       {
         /** Enabled [0/1]*/
@@ -210,7 +210,7 @@ let cfg = {
 
 
       //-------------------------------------
-      // Ohjaus #3
+      // Control #3
       //-------------------------------------
       {
         /** Enabled [0/1]*/
@@ -298,8 +298,8 @@ let cfg = {
 
 
 
-//-------------------------------------
-// Koodi alkaa, älä koske
+// -------------------------------------
+// Code starts, do not touch
 //-------------------------------------
 function getKvsKey(inst) {
   let key = "porssi";
@@ -332,12 +332,12 @@ function requestReload() {
 function chkConfig(inst) {
   let key = getKvsKey(inst);
 
-  //Haetaan nykyiset asetukset
+  //Get current settings
   Shelly.call('KVS.Get', { key: key }, function (res, err, msg) {
     let active = res ? JSON.parse(res.value) : {};
     console.log("Active settings for #" + inst + ": ", JSON.stringify(active));
 
-    //Muutetaan mitä muutetaan
+    //Change what needs to be changed
     let source = inst < 0
       ? cfg.c
       : cfg.i[inst];
@@ -378,5 +378,5 @@ function chkConfig(inst) {
 chkConfig(-1);
 
 //-------------------------------------
-// HUOM: Asetukset löytyvät ylhäältä
+// NOTE: Settings are found above
 //-------------------------------------

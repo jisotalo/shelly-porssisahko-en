@@ -1,58 +1,58 @@
 //__REPLACED_WITH_MAIN_CODE__
 
 /**
- * Tämä käyttäjäskripti ylikirjoittaa 1. ohjauksen lähdön tarvittaessa
- * Shelly Plus Add-onin mittaaman lämpötilan perusteella.
+ * This user script overrides the output of the 1st control if necessary
+ * based on the temperature measured by the Shelly Plus Add-on.
  * 
- * Idea on, että jos lämpötila on tarpeeksi korkea, ei ohjata turhaan.
- * Ja jos lämpötila onkin liian matala, ohjataan vaikka olisi kallista.
+ * The idea is that if the temperature is high enough, there is no need to control unnecessarily.
+ * And if the temperature is too low, control is applied even if it is expensive.
  * 
- * Muuten mennään pörssiohjauksen mukaan.
+ * Otherwise, the stock exchange control is followed.
  */
 function USER_OVERRIDE(inst, cmd, callback) {
-  //Otetaan tila talteen
+  // Save the state
   const state = _;
   
-  //Jos kyseessä on joku muu ohjaus kuin #1 niin ei tehdä mitään
+  // If it is any control other than #1, do nothing
   if (inst != 0) {
     callback(cmd);
     return;
   }
 
   try {
-    //console.log("Suoritetaan USER_OVERRIDE. Ohjauksen tila ennen: ", cmd);
+    //console.log("Executing USER_OVERRIDE. Control state before: ", cmd);
     let temp = Shelly.getComponentStatus("temperature:100");
 
     if (!temp) {
-      state.si[inst].str = "Lämpötilaohjauksen virhe - anturia 100 ei löytynyt";
-      throw new Error("Lämpötila-anturia 100 ei löytynyt");
+      state.si[inst].str = "Temperature control error - sensor 100 not found";
+      throw new Error("Temperature sensor 100 not found");
     }
 
     if (temp.tC == null) {
-      state.si[inst].str = "Lämpötilaohjauksen virhe - onko anturi kytketty?";
-      throw new Error("Onko anturi kytketty?");
+      state.si[inst].str = "Temperature control error - is the sensor connected?";
+      throw new Error("Is the sensor connected?");
     }
 
     if (cmd && temp.tC > 15) {
-      state.si[inst].str = "Lämpötila " + temp.tC + "°C on yli 15°C -> ohjaus pois";
-      console.log("Lämpötila on yli 15 astetta, asetetaan ohjaus pois. Lämpötila nyt:", temp.tC);
+      state.si[inst].str = "Temperature " + temp.tC + "°C is over 15°C -> control off";
+      console.log("Temperature is over 15 degrees, setting control off. Temperature now:", temp.tC);
       cmd = false;
 
     } else if (!cmd && temp.tC < 5) {
-      state.si[inst].str = "Lämpötila " + temp.tC + "°C on alle 5°C -> ohjaus päälle";
-      console.log("Lämpötila on alle 5 astetta, asetetaan ohjaus päälle. Lämpötila nyt:", temp.tC);
+      state.si[inst].str = "Temperature " + temp.tC + "°C is below 5°C -> control on";
+      console.log("Temperature is below 5 degrees, setting control on. Temperature now:", temp.tC);
       cmd = true;
 
     } else {
-      state.si[inst].str = "Lämpötila " + temp.tC + "°C -> mennään ohjauksen mukaan";
+      state.si[inst].str = "Temperature " + temp.tC + "°C -> following the control logic";
     }
     
-    //console.log("USER_OVERRIDE suoritettu. Ohjauksen tila nyt: ", cmd);
+    //console.log("USER_OVERRIDE executed. Control state now: ", cmd);
     callback(cmd);
 
   } catch (err) {
-    console.log("Virhe tapahtui USER_OVERRIDE-funktiossa. Virhe:", err);
-    state.si[inst].str = "Lämpötilaohjauksen virhe:" + err;
+    console.log("An error occurred in the USER_OVERRIDE function. Error:", err);
+    state.si[inst].str = "Temperature control error:" + err;
     callback(cmd);
   }
 }
