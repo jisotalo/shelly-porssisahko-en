@@ -11,6 +11,18 @@ Script uses API by [Elering](https://dashboard.elering.ee/api) without any other
 If you want to control the color of Shelly Plug Plus LED by electricity price, see [shelly-plug-nordpool-light](https://github.com/jisotalo/shelly-plug-nordpool-light).
 
 --- 
+
+<span style="font-weight:bold;color:red;">-----> NOTE - 15-MIN PRICES <-----</span>
+
+Old versions do not support spot prices of 15-minute interval.
+
+Update the script to latest (v.3.3.0+) - this supports the new prices.
+
+More discussion (Finnish): [https://github.com/jisotalo/shelly-porssisahko/issues/38](https://github.com/jisotalo/shelly-porssisahko/issues/38)
+
+--- 
+
+--- 
 This is an English version of the original script at [https://github.com/jisotalo/shelly-porssisahko](https://github.com/jisotalo/shelly-porssisahko). 
 
 **SUOMEKSI:** Skriptistä on suomenkielinen versio osoitteessa [https://github.com/jisotalo/shelly-porssisahko](https://github.com/jisotalo/shelly-porssisahko). 
@@ -327,6 +339,12 @@ Example: Adjusting number of cheapest hours to `8h`.
 
 
 ## FAQ
+
+### Why the script stopped working on 30.09.2025
+
+Old versions stopped working due to new 15-minute interval spot prices.
+
+Version 3.3.0 onwards support the new prices, but the hourly prices are calculated as average of quarter-hour prices.
 
 ### Why the script isn't getting prices?
 
