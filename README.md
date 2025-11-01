@@ -12,15 +12,14 @@ If you want to control the color of Shelly Plug Plus LED by electricity price, s
 
 --- 
 
-<span style="font-weight:bold;color:red;">-----> NOTE - 15-MIN PRICES <-----</span>
 
-Old versions do not support spot prices of 15-minute interval.
+⚠️⚠️⚠️ **NOTE - 15-MIN PRICES** ⚠️⚠️⚠️
 
-Update the script to latest (v.3.3.0+) - this supports the new prices.
+Old versions do not support spot prices of 15-minute interval. Update the script to latest version for support.
 
-More discussion (Finnish): [https://github.com/jisotalo/shelly-porssisahko/issues/38](https://github.com/jisotalo/shelly-porssisahko/issues/38)
+Script calculates average price for each hour and then works as previously.
 
---- 
+More discussion (in Finnish): [https://github.com/jisotalo/shelly-porssisahko/issues/38](https://github.com/jisotalo/shelly-porssisahko/issues/38)
 
 --- 
 This is an English version of the original script at [https://github.com/jisotalo/shelly-porssisahko](https://github.com/jisotalo/shelly-porssisahko). 
@@ -169,6 +168,7 @@ At least these devices have been usesd successfully:
   * Shelly Plus 1 Mini
   * Shelly Plus Plug S
     * For color control, see [shelly-plug-nordpool-light](https://github.com/jisotalo/shelly-plug-nordpool-light)
+    * **NOTE:** Gen 3 devices: Matter support needs to be disabled!
 
 ## Settings
 
@@ -340,15 +340,31 @@ Example: Adjusting number of cheapest hours to `8h`.
 
 ## FAQ
 
-### Why the script stopped working on 30.09.2025
+### Is support available?
+
+No. Use at your own risk.
+
+### Why the old script stopped working on 30.09.2025
 
 Old versions stopped working due to new 15-minute interval spot prices.
 
 Version 3.3.0 onwards support the new prices, but the hourly prices are calculated as average of quarter-hour prices.
 
+### Why the script isn't working with 15 minute interval?
+
+At the moment I don't thave time to focus on that.
+
+### Can I set the script to use cheapest hours between 22:00-06:00?
+
+No - the script works inside one day (24h). So 00:00-06:00 works, not 22:00-06:00.
+
+One solution is to select 22:00-00:00 and 00:00-06:00 - in the long run it might work OK.
+
 ### Why the script isn't getting prices?
 
 Sometimes Elering might have API issues. It's important to set backup hours for situations like this.
+
+Check first discussion in Finnish at [https://github.com/jisotalo/shelly-porssisahko/issues/59](https://github.com/jisotalo/shelly-porssisahko/issues/59) and send a new comment there if needed.
 
 Check Diagnostics log in Shelly for errors. 
 You can open the Elering URL in web browser and see if the CSV file has valid data for 24 hours. If not, the script can't get the data either.
