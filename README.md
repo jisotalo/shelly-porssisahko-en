@@ -19,7 +19,7 @@ Old versions do not support spot prices of 15-minute interval. Update the script
 
 Script calculates average price for each hour and then works as previously.
 
-More discussion (in Finnish): [https://github.com/jisotalo/shelly-porssisahko/issues/38](https://github.com/jisotalo/shelly-porssisahko/issues/38)
+More discussion (in Finnish): [https://github.com/jisotalo/shelly-porssisahko/discussions/63](https://github.com/jisotalo/shelly-porssisahko/discussions/63)
 
 --- 
 This is an English version of the original script at [https://github.com/jisotalo/shelly-porssisahko](https://github.com/jisotalo/shelly-porssisahko). 
