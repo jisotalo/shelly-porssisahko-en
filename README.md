@@ -432,15 +432,16 @@ Script needs to be restarted for the changes to take effect.
 * Some variables are at global scope because Shelly js engine stack issues
 * The final script is done by "building" (minimizing, base64 encoding, gzipping)
 * Use [Eleringin CSV API](https://dashboard.elering.ee/assets/api-doc.html#/nps-controller/getPriceAsCSVUsingGET) to save memory (instead of JSON)
-* v. 3.0.0 uses around 18kb of Shelly memory (plenty of space left for other scripts)
+* v. 3.4.0 uses around 18kb of Shelly memory (plenty of space left for other scripts)
 
 ```
 script:1: {
   id: 1,
   running: true,
-  mem_used: 11900,
-  mem_peak: 18116,
-  mem_free: 13286
+  mem_used: 11886,
+  mem_peak: 21434,
+  mem_free: 13300,
+  cpu: 2
 },
 ```
 

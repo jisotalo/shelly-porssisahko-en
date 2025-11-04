@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 04.11.2025
+- History returned to work as in v. 3.2.0
+- Memory usage tested on Shelly Pro3
+
+```
+script:1: {
+  id: 1,
+  running: true,
+  mem_used: 11886,
+  mem_peak: 21434,
+  mem_free: 13300,
+  cpu: 2
+},
+```
+
 ## [3.3.1] - 01.11.2025
 - Bug fix: Comma didn't work as decimal separator (only dot was supported)
   - Thanks to [https://github.com/vaahtokarkki](https://github.com/vaahtokarkki)
