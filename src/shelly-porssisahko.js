@@ -9,6 +9,7 @@
  * https://github.com/jisotalo/shelly-porssisahko-en
  * 
  * License: GNU Affero General Public License v3.0 
+ * Modified by Kalle Kaljuste 2025-11-09
  */
 
 /** Constants etc. */
@@ -46,12 +47,12 @@ const CNST = {
     /** Default config for common settings */
     COM: {
       /** Group (country) to get prices from */
-      g: 'fi',
+      g: 'ee',
       /** VAT added to spot price [%] */
-      vat: 25.5,
+      vat: 24,
       /** Day (07...22) transfer price [c/kWh] */
       day: 0,
-      /** Night (22...07) transfer price [c/kWh] */
+      /** Night (22...07 & weekends) transfer price [c/kWh] */
       night: 0,
       /** Instance names */
       names: []
@@ -125,7 +126,7 @@ const CNST = {
 let _ = {
   s: {
     /** version number */
-    v: "3.4.0",
+    v: "0.1.1-3.4.0",
     /** Device name */
     dn: '',
     /** 1 if config is checked */
@@ -144,7 +145,9 @@ let _ = {
     tzh: 0,
     /** Enabled instance count */
     enCnt: 0,
-    /** price info [0] = today, [1] = tomorrow */
+	/** Random delay for server requests (max 15min)*/
+	delay: Math.floor(Math.random() * 16),
+	/** price info [0] = today, [1] = tomorrow */
     p: [
       {
         /** time when prices were read */
@@ -541,10 +544,11 @@ function pricesNeeded(dayIndex) {
     /*
     Getting prices for tomorrow if
       - we have a valid time
-      - clock is past 15:00 local time (NOTE: Elering seems to have prices after 14.30 LOCAL time, no matter is it DST or not)
+      - clock is past 18:00 local time (NOTE: Elering seems to have prices after 14.30 LOCAL time, no matter is it DST or not)
       - we don't have prices
+	 Add some random delay minutes to spread out the client requests
     */
-    res = _.s.timeOK && _.s.p[1].ts === 0 && now.getHours() >= 15;
+    res = _.s.timeOK && _.s.p[1].ts === 0 && ((now.getHours()  === 18 && now.getMinutes() >= _.s.delay) || now.getHours() > 18);
 
   } else {
     /*
@@ -555,11 +559,33 @@ function pricesNeeded(dayIndex) {
     let dateChanged = getDate(new Date(_.s.p[0].ts * 1000)) !== getDate(now);
 
     //Clear tomorrow data
+	/*  
     if (dateChanged) {
       _.s.p[1].ts = 0;
       _.p[1] = [];
     }
+	*/
+	   /*
+    -----------------
+    The following commented code moves tomorrow prices to today (the code was present in upstream ver2.x)
+    This way we don't need to get prices from Elering again
+    If using this, comment out the if (dateChanged) { ... } above
+    -----------------
+	*/
+    if (dateChanged && _.s.p[1].ts > 0 && getDate(new Date(_.s.p[1].ts * 1000)) !== getDate(now)) {
+      //Copy tomorrow data
+      _.p[0] = _.p[1];
 
+      _.s.p[0] = Object.assign({}, _.s.p[1]);
+      _.s.p[0].ts = epoch();
+
+      //Clear tomorrow
+      _.s.p[1].ts = 0;
+      _.p[1] = [];
+
+      //No need to fetch from server
+      dateChanged = false;
+    }
     res = _.s.timeOK && (_.s.p[0].ts == 0 || dateChanged);
   }
 
@@ -650,7 +676,7 @@ function getPrices(dayIndex) {
 
     let req = {
       url: "https://dashboard.elering.ee/api/nps/price/csv?fields=" + _.c.c.g + "&start=" + start + "&end=" + end,
-      timeout: 5,
+      timeout: 30,
       ssl_ca: "*"
     };
 
@@ -668,6 +694,8 @@ function getPrices(dayIndex) {
           res.headers = null;
           res.message = null;
           msg = null;
+		  
+		 //log("We got market prices from Elering");
 
           _.p[dayIndex] = [];
           _.s.p[dayIndex].avg = 0;
@@ -734,19 +762,20 @@ function getPrices(dayIndex) {
             row[1] = row[1] / 10.0 * (100 + (row[1] > 0 ? _.c.c.vat : 0)) / 100.0;
 
             //Add transfer fees (if any)
+			//Use Elektrilevi schedules, add VAT
             let hour = new Date(row[0] * 1000).getHours();
-
-            if (hour >= 7 && hour < 22) {
+			let day = new Date(row[0] * 1000).getDay();
+            if (day === 6 || day === 0 || hour < 7 || hour >= 22) {
+			  //night
+			  row[1] += ((100 + _.c.c.vat) * _.c.c.night) / 100;
+			} else {
               //day
-              row[1] += _.c.c.day;
-            } else {
-              //night
-              row[1] += _.c.c.night;
+              row[1] += ((100 + _.c.c.vat) * _.c.c.day) / 100;
             }
 
             //find next row
             activePos = res.body_b64.indexOf("\n", activePos);
-            
+
             //If first row, set the epoch
             if (activeHour < 0) {
               activeData[0] = row[0];
